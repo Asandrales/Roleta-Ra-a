@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Roleta de Raças</title>
+<title>Roleta de Classes</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
     body {
-        background: radial-gradient(circle, #1a1a1a, #000);
+        background: #0c0c0c;
         font-family: Arial, sans-serif;
         text-align: center;
         color: white;
@@ -14,20 +14,18 @@
 
     h1 {
         margin-top: 25px;
-        font-size: 38px;
-        text-shadow: 0 0 12px #ff8c00, 0 0 22px #ff4800;
-        font-weight: bold;
+        font-size: 36px;
+        text-shadow: 0 0 10px #00aaff;
     }
 
     .container {
         margin: auto;
         margin-top: 40px;
         width: 380px;
-        padding: 25px;
+        padding: 20px;
         background: #1a1a1a;
-        border-radius: 22px;
-        box-shadow: 0 0 35px #ff5c0099, inset 0 0 20px #000;
-        border: 2px solid #ff5c00aa;
+        border-radius: 20px;
+        box-shadow: 0 0 25px #0099ffaa;
     }
 
     .wheel-box {
@@ -35,11 +33,10 @@
         width: 320px;
         height: 320px;
         margin: auto;
-        background: linear-gradient(145deg, #4a2f0d, #2c1c07);
+        background: #0a2a3a;
         border-radius: 20px;
         padding-top: 15px;
-        box-shadow: inset 0 0 30px #000, 0 0 20px #ff6a00aa;
-        border: 2px solid #ff7a00;
+        box-shadow: inset 0 0 20px #000;
     }
 
     canvas {
@@ -49,8 +46,6 @@
         background: #000;
         display: block;
         margin: 10px auto 0 auto;
-        box-shadow: 0 0 25px #ff8c00aa, inset 0 0 20px #000;
-        border: 3px solid #ffae00;
     }
 
     .ponteiro {
@@ -62,57 +57,51 @@
         height: 0;
         border-left: 18px solid transparent;
         border-right: 18px solid transparent;
-        border-top: 32px solid white;
-        filter: drop-shadow(0 0 8px #ffffff) drop-shadow(0 0 5px #ffae00);
+        border-top: 30px solid white;
+        filter: drop-shadow(0 0 5px #ffffff);
         z-index: 50;
-        transition: 0.2s ease;
+        pointer-events: none;
     }
 
     button {
         margin-top: 25px;
-        background: linear-gradient(90deg, #ff6a00, #ff3c00);
+        background: #0099ff;
         color: white;
         border: none;
-        font-size: 22px;
-        padding: 14px 30px;
-        border-radius: 14px;
+        font-size: 20px;
+        padding: 14px 28px;
+        border-radius: 12px;
         cursor: pointer;
         font-weight: bold;
-        transition: 0.25s;
-        box-shadow: 0 0 18px #ff6a00cc, inset 0 0 10px #000;
-        border: 2px solid #ffae00;
+        transition: 0.2s;
+        box-shadow: 0 0 10px #00bbff;
     }
 
     button:hover {
-        transform: scale(1.07);
-        box-shadow: 0 0 30px #ff8800ff;
+        background: #00b7ff;
+        box-shadow: 0 0 15px #00ddff;
     }
 
-    .girando {
-        animation: pulse 0.5s infinite alternate ease-in-out !important;
-        pointer-events: none;
-        opacity: 0.7;
-    }
-
-    @keyframes pulse {
-        from { transform: scale(1); box-shadow: 0 0 15px #ff5c00; }
-        to   { transform: scale(1.08); box-shadow: 0 0 30px #ffaa00; }
-    }
-
-    #resultado, #limite {
-        margin-top: 18px;
+    #resultado {
+        margin-top: 25px;
         font-size: 22px;
         font-weight: bold;
         text-shadow: 0 0 10px white;
         min-height: 28px;
     }
 
+    #cronometro {
+        margin-top: 10px;
+        font-size: 18px;
+        color: #00ffea;
+        text-shadow: 0 0 5px #00bbff;
+        min-height: 24px;
+    }
 </style>
 </head>
-
 <body>
 
-<h1>🎡 Roleta de Raças</h1>
+<h1>🎯 Roleta de Classes</h1>
 
 <div class="container">
     <div class="wheel-box">
@@ -121,18 +110,80 @@
     </div>
 
     <button id="btnGirar">Girar Roleta</button>
-
-    <div id="limite">⠀</div>
     <div id="resultado">⠀</div>
+    <div id="cronometro"></div>
 </div>
 
 <audio id="tick" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_f5075c2042.mp3?filename=tick-85736.mp3" preload="auto"></audio>
 <audio id="win" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_fce346c94b.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
 
 <script>
-// ===== LIMITAÇÃO DOS 3 GIROS COM PERSISTÊNCIA =====
-const maxGiros = 3;
-let giros = parseInt(localStorage.getItem("giros")) || 0;
+/* ============================================================
+   SISTEMA DE 3 GIROS INICIAIS + RECUPERAÇÃO DE 1 GIRO A CADA 20 HORAS
+============================================================ */
+
+const LIMITE_GIROS = 3; // Giros iniciais
+const TEMPO_RECUPERACAO = 20 * 60 * 60 * 1000; // 20 horas
+let girosUsados = Number(localStorage.getItem("giros_classes") || 0);
+let proximoGiro = Number(localStorage.getItem("proximoGiro_classes") || 0);
+
+if (!proximoGiro) definirProximoGiro();
+
+function checarRecuperacao() {
+    const agora = Date.now();
+    while (agora > proximoGiro) {
+        if (girosUsados > 0) {
+            girosUsados--;
+            localStorage.setItem("giros_classes", girosUsados);
+        }
+        if (girosUsados === 0) break;
+        proximoGiro += TEMPO_RECUPERACAO;
+        localStorage.setItem("proximoGiro_classes", proximoGiro);
+    }
+}
+
+function definirProximoGiro() {
+    proximoGiro = Date.now() + TEMPO_RECUPERACAO;
+    localStorage.setItem("proximoGiro_classes", proximoGiro);
+}
+
+function atualizarUI() {
+    const btn = document.getElementById("btnGirar");
+    const cronometro = document.getElementById("cronometro");
+    checarRecuperacao();
+
+    const restantes = LIMITE_GIROS - girosUsados;
+
+    if (restantes > 0) {
+        btn.disabled = false;
+        btn.textContent = `Girar Roleta (${restantes})`;
+        cronometro.textContent = "";
+    } else {
+        btn.disabled = true;
+        btn.textContent = "Acabou os giros";
+        const restante = proximoGiro - Date.now();
+        const h = Math.floor(restante / 1000 / 60 / 60);
+        const m = Math.floor((restante / 1000 / 60) % 60);
+        const s = Math.floor((restante / 1000) % 60);
+        cronometro.textContent = `Próximo giro em ${h}h ${m}m ${s}s`;
+    }
+}
+
+setInterval(atualizarUI, 1000);
+atualizarUI();
+
+/* ============================================================
+                      ROLETA DE CLASSES
+============================================================ */
+
+const classes = [
+    { nome: "🤢 Pebleu",       cor: "#4d4d4d" },
+    { nome: "👨‍🌾 Aldeão",     cor: "#7dff00" },
+    { nome: "💎 Nobre",        cor: "#0099ff" },
+    { nome: "🏰 Realeza",      cor: "#d4af37" },
+    { nome: "🌀 Zogratis",     cor: "#8000ff" },
+    { nome: "👑 Grinberryall", cor: "#ff00c8" }
+];
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -140,39 +191,17 @@ const tickSound = document.getElementById("tick");
 const winSound = document.getElementById("win");
 const btn = document.getElementById("btnGirar");
 const resultadoDiv = document.getElementById("resultado");
-const limiteDiv = document.getElementById("limite");
-
-const racas = [
-    { nome: "Humano",  chance: 40, cor: "#e6d6a3" },
-    { nome: "Elfo",    chance: 25, cor: "#00ff44" },
-    { nome: "Anão",    chance: 20, cor: "#8b4513" },
-    { nome: "Bruxa",   chance: 10, cor: "#7a00ff" },
-    { nome: "Demônio", chance: 5,  cor: "#ff3300" }
-];
 
 let setores = [];
 let angulo = 0;
 let animando = false;
 let ultimoIndiceTick = -1;
 
-// Atualizar interface inicial
-if (giros >= maxGiros) {
-    limiteDiv.textContent = "Seus giros acabaram!";
-    btn.disabled = true;
-    btn.style.opacity = "0.4";
-    btn.style.cursor = "not-allowed";
-} else {
-    limiteDiv.textContent = `Giros restantes: ${maxGiros - giros}`;
-}
-
-// ===== FUNÇÕES DA ROTAÇÃO =====
 function calcularSetores(){
-    const total = racas.reduce((s,r)=> s + r.chance, 0);
-    let acc = 0;
-    setores = racas.map(r => {
-        const inicio = (acc / total) * Math.PI * 2;
-        acc += r.chance;
-        const fim = (acc / total) * Math.PI * 2;
+    const total = classes.length;
+    setores = classes.map((r, i) => {
+        const inicio = (i / total) * 2 * Math.PI;
+        const fim = ((i + 1) / total) * 2 * Math.PI;
         return { nome: r.nome, cor: r.cor, inicio, fim };
     });
 }
@@ -198,7 +227,7 @@ function desenhar(){
         ctx.rotate((s.inicio + s.fim)/2);
         ctx.textAlign = "center";
         ctx.font = "16px Arial";
-        ctx.fillText(s.nome, radius * 0.60, 6);
+        ctx.fillText(s.nome, radius * 0.7, 6);
         ctx.restore();
     });
 
@@ -217,59 +246,54 @@ function pegarSetorAtual(){
     return setores.findIndex(s => ang >= s.inicio && ang < s.fim);
 }
 
-function girar(){
-    if(animando) return;
-    if (giros >= maxGiros) return;
-
-    giros++;
-    localStorage.setItem("giros", giros);
-    limiteDiv.textContent = `Giros restantes: ${maxGiros - giros}`;
+function girarRoleta(){
+    if(animando || LIMITE_GIROS - girosUsados <= 0) return;
 
     animando = true;
-    btn.classList.add("girando");
+    resultadoDiv.textContent = "⠀";
 
-    let velocidade = 0.4;
-    let desaceleracao = 0.002;
+    let velocidade = (Math.random() * 4 + 4);
+    const desaceleracao = 0.01;
 
-    function animar(){
-        angulo += velocidade;
+    function anim(){
+        angulo += velocidade * 0.02;
+        velocidade -= desaceleracao;
+        if(velocidade < 0.05) velocidade = 0;
+
         desenhar();
 
-        const indice = pegarSetorAtual();
-        if(indice !== ultimoIndiceTick){
+        const setorIndex = pegarSetorAtual();
+        if(setorIndex !== ultimoIndiceTick){
             tickSound.currentTime = 0;
             tickSound.play();
-            ultimoIndiceTick = indice;
+            ultimoIndiceTick = setorIndex;
         }
 
-        velocidade -= desaceleracao;
         if(velocidade > 0){
-            requestAnimationFrame(animar);
+            requestAnimationFrame(anim);
         } else {
             animando = false;
-            btn.classList.remove("girando");
+
+            girosUsados++;
+            localStorage.setItem("giros_classes", girosUsados);
+
+            if (girosUsados >= LIMITE_GIROS) definirProximoGiro();
+
+            atualizarUI();
 
             const final = pegarSetorAtual();
-            resultadoDiv.textContent = setores[final].nome;
-
+            resultadoDiv.textContent = "Resultado: " + setores[final].nome;
             winSound.play();
-
-            if (giros >= maxGiros) {
-                btn.disabled = true;
-                btn.style.opacity = "0.4";
-                btn.style.cursor = "not-allowed";
-                limiteDiv.textContent = "Seus giros acabaram!";
-            }
         }
     }
-    animar();
+
+    anim();
 }
 
-btn.onclick = girar;
 calcularSetores();
 desenhar();
+btn.addEventListener("click", girarRoleta);
 </script>
+
 </body>
 </html>
-
-
