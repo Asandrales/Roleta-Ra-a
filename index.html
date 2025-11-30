@@ -30,7 +30,6 @@
         border: 2px solid #ff5c00aa;
     }
 
-    /* Caixa da roleta */
     .wheel-box {
         position: relative;
         width: 320px;
@@ -43,7 +42,6 @@
         border: 2px solid #ff7a00;
     }
 
-    /* ROLETAAAA */
     canvas {
         border-radius: 50%;
         width: 290px;
@@ -55,7 +53,6 @@
         border: 3px solid #ffae00;
     }
 
-    /* PONTEIRO */
     .ponteiro {
         position: absolute;
         top: calc(50% - 150px);
@@ -71,7 +68,6 @@
         transition: 0.2s ease;
     }
 
-    /* BOTÃO */
     button {
         margin-top: 25px;
         background: linear-gradient(90deg, #ff6a00, #ff3c00);
@@ -92,7 +88,6 @@
         box-shadow: 0 0 30px #ff8800ff;
     }
 
-    /* Animação ao girar */
     .girando {
         animation: pulse 0.5s infinite alternate ease-in-out !important;
         pointer-events: none;
@@ -104,13 +99,14 @@
         to   { transform: scale(1.08); box-shadow: 0 0 30px #ffaa00; }
     }
 
-    #resultado {
-        margin-top: 28px;
-        font-size: 26px;
+    #resultado, #limite {
+        margin-top: 18px;
+        font-size: 22px;
         font-weight: bold;
         text-shadow: 0 0 10px white;
         min-height: 28px;
     }
+
 </style>
 </head>
 
@@ -125,16 +121,20 @@
     </div>
 
     <button id="btnGirar">Girar Roleta</button>
+
+    <!-- TEXTO MOSTRANDO LIMITE -->
+    <div id="limite">Você tem 3 giros!</div>
     <div id="resultado">⠀</div>
 </div>
 
-<!-- SONS -->
 <audio id="tick" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_f5075c2042.mp3?filename=tick-85736.mp3" preload="auto"></audio>
 <audio id="win" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_fce346c94b.mp3?filename=success-1-6297.mp3" preload="auto"></audio>
 
 <script>
-// MESMO JS FUNCIONAL DE ANTES — SEM ALTERAR.
-// Apenas mantendo beleza e funcionamento perfeito.
+// ===== LIMITAÇÃO DOS 3 GIROS =====
+let giros = 0;
+const maxGiros = 3;
+// =================================
 
 const racas = [
     { nome: "Humano",  chance: 40, cor: "#e6d6a3" },
@@ -150,6 +150,7 @@ const tickSound = document.getElementById("tick");
 const winSound = document.getElementById("win");
 const btn = document.getElementById("btnGirar");
 const resultadoDiv = document.getElementById("resultado");
+const limiteDiv = document.getElementById("limite");
 
 let setores = [];
 let angulo = 0;
@@ -209,6 +210,15 @@ function pegarSetorAtual(){
 
 function girar(){
     if(animando) return;
+
+    if (giros >= maxGiros) {
+        resultadoDiv.textContent = "Seus giros acabaram!";
+        return;
+    }
+
+    giros++;
+    limiteDiv.textContent = `Giros restantes: ${maxGiros - giros}`;
+
     animando = true;
     btn.classList.add("girando");
 
@@ -238,6 +248,13 @@ function girar(){
             resultadoDiv.textContent = "Resultado: " + setores[final].nome;
 
             winSound.play();
+
+            if (giros >= maxGiros) {
+                btn.disabled = true;
+                btn.style.opacity = "0.4";
+                btn.style.cursor = "not-allowed";
+                limiteDiv.textContent = "Seus giros acabaram!";
+            }
         }
     }
     animar();
@@ -249,5 +266,3 @@ desenhar();
 </script>
 </body>
 </html>
-
-
